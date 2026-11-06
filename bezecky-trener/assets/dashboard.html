@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tréninkový přehled</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --plan: #c3c2b7;
+  --actual: #2a78d6;
+  --z-E: #86b6ef; --z-M: #5598e7; --z-T: #2a78d6; --z-I: #1c5cab; --z-R: #104281;
+  --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  --band: rgba(42,120,214,0.06);
+  --now: rgba(42,120,214,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --plan: #52514e; --actual: #3987e5;
+    --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
+    --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --plan: #52514e; --actual: #3987e5;
+  --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
+  --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main {
+  max-width: 1120px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header h1 { font-size: 22px; font-weight: 600; margin: 0; }
+header p { margin: 4px 0 0; color: var(--text-secondary); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; margin: 20px 0; }
+.tile, .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; }
+.tile { padding: 14px 16px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 28px; font-weight: 600; margin-top: 2px; }
+.tile .sub { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 12px; }
+.card { padding: 16px; margin-bottom: 12px; min-width: 0; }
+.card h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.card .desc { color: var(--text-secondary); font-size: 13px; margin: 2px 0 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.lk { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.multiples h3 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--text-secondary); }
+svg text { font-family: inherit; }
+.tick { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.blabel { fill: var(--text-secondary); font-size: 11px; }
+.hit { fill: transparent; cursor: default; outline: none; }
+.hit:hover, .hit:focus { fill: var(--now); }
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; display: none;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  min-width: 140px; max-width: 260px;
+}
+#tip .t { color: var(--text-secondary); margin-bottom: 4px; }
+#tip .r { display: flex; align-items: center; gap: 6px; }
+#tip .r b { font-weight: 600; font-variant-numeric: tabular-nums; }
+#tip .r i { font-style: normal; color: var(--text-secondary); }
+.cal { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); gap: 3px; font-size: 11px; }
+.cal .h { color: var(--text-muted); text-align: center; }
+.cal .w { color: var(--text-muted); align-self: center; font-variant-numeric: tabular-nums; }
+.cal .c {
+  position: relative; height: 40px; border-radius: 6px; background: var(--surface-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  color: var(--text-secondary); line-height: 1.15; font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.cal .c.plan { background: transparent; box-shadow: inset 0 0 0 1px var(--axis); }
+.cal .c.free { background: var(--plan); color: var(--text-primary); }
+.cal .c.good { background: var(--good); color: #fff; }
+.cal .c.warn { background: var(--warning); color: #0b0b0b; }
+.cal .c.bad { background: var(--critical); color: #fff; }
+.cal .c.today { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--text-primary); }
+.cal .c .s { position: absolute; top: 2px; right: 4px; font-size: 9px; font-weight: 700; }
+.cal .c b { font-weight: 700; }
+.cal .c:hover, .cal .c:focus { filter: brightness(1.08); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--text-secondary); font-weight: 600; }
+tr.cur td { background: var(--now); }
+.scroll { overflow-x: auto; }
+details summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+ul.upr { margin: 8px 0 0; padding-left: 18px; }
+ul.upr li { margin: 3px 0; }
+.muted { color: var(--text-muted); }
+.empty { color: var(--text-muted); font-size: 13px; padding: 12px 0; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.l0 { background: var(--good); } .dot.l1 { background: var(--warning); } .dot.l2 { background: var(--critical); }
+.verdict { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; margin: 4px 0 10px; }
+.verdict .dot { width: 16px; height: 16px; }
+.verdict .muted { font-size: 13px; font-weight: 400; }
+ul.sig { list-style: none; margin: 0 0 8px; padding: 0; }
+ul.sig li { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.wstrip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; margin: 12px 0 4px; max-width: 520px; }
+.wstrip .c { height: 26px; border-radius: 5px; background: var(--surface-2); color: var(--text-muted);
+  font-size: 10px; display: flex; align-items: center; justify-content: center; outline: none; }
+.wstrip .c.l0 { background: var(--good); color: #fff; }
+.wstrip .c.l1 { background: var(--warning); color: #0b0b0b; }
+.wstrip .c.l2 { background: var(--critical); color: #fff; }
+.wstrip .c.today { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 3px var(--text-primary); }
+details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+.tile .value .dot { width: 14px; height: 14px; margin-right: 8px; vertical-align: 2px; }
+.tl { margin: 10px 0 16px; }
+.tl-races { position: relative; height: 18px; }
+.tl-race { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--text-secondary); white-space: nowrap; outline: none; }
+.tl-race.a { color: var(--text-primary); font-weight: 700; }
+.tl-bar { position: relative; height: 30px; }
+.tl-seg { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: var(--surface-2); color: var(--text-secondary);
+  font-size: 11px; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; outline: none;
+  padding: 0 4px; box-sizing: border-box; }
+.tl-seg.past { color: var(--text-muted); opacity: .6; }
+.tl-seg.cur { background: var(--actual); color: #fff; font-weight: 600; }
+.tl-now { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text-primary); border-radius: 1px; }
+.plan-cols h3 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin: 0 0 6px; }
+.pf { padding: 8px 0; border-top: 1px solid var(--grid); }
+.pf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.pf-text { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.pf.past, .pr.past { opacity: .55; }
+.pill { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--actual); color: #fff; }
+.pr { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--grid); }
+.prio { flex: none; width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--text-secondary); }
+.prio.pA { background: var(--actual); color: #fff; }
+.prio.pB { box-shadow: inset 0 0 0 2px var(--actual); color: var(--text-primary); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Tréninkový přehled</h1>
+    <p id="sub"></p>
+  </header>
+  <section class="tiles" id="tiles"></section>
+
+  <div class="card">
+    <h2>Týdenní objem</h2>
+    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span></div>
+    <div class="chart" id="vol"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Plnění tréninků</h2>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--good)"></i>✓ splněno</span>
+        <span><i class="sw" style="background:var(--warning)"></i>≈ zkráceno</span>
+        <span><i class="sw" style="background:var(--critical)"></i>✕ vynecháno</span>
+        <span><i class="sw" style="background:var(--plan)"></i>mimo plán</span>
+        <span><i class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></i>naplánováno</span>
+      </div>
+      <div id="cal"></div>
+    </div>
+    <div class="card">
+      <h2>Regenerace</h2>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--good)"></i>✓ v pořádku</span>
+        <span><i class="sw" style="background:var(--warning)"></i>! pozor</span>
+        <span><i class="sw" style="background:var(--critical)"></i>✕ problém</span>
+      </div>
+      <div id="wstat"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Plán sezóny</h2>
+    <div id="plan"></div>
+  </div>
+</main>
+<div id="tip" role="tooltip"></div>
+<script>
+const D = /*__DATA__*/null;
+const ZONY = ["E", "M", "T", "I", "R"];
+const ZNAME = {E: "lehce", M: "maratonské", T: "práh", I: "intervaly", R: "rychlost"};
+const NS = "http://www.w3.org/2000/svg";
+const today = D.dnes;
+const tip = document.getElementById("tip");
+
+const fmtD = s => { const [y, m, d] = s.split("-"); return `${+d}.${+m}.`; };
+const fmtN = v => v == null ? "–" : (Math.round(v * 10) / 10).toLocaleString("cs-CZ");
+const pct = (a, b) => b ? Math.round(100 * a / b) + " %" : "–";
+const days = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+
+function el(tag, attrs = {}, parent, text) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function h(tag, cls, parent, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+/* ---------- tooltip ---------- */
+function showTip(evt, title, rows) {
+  tip.replaceChildren();
+  h("div", "t", tip, title);
+  for (const r of rows) {
+    const row = h("div", "r", tip);
+    if (r.color) { const k = h("span", r.box ? "sw" : "lk", row); k.style.background = r.color; }
+    h("b", null, row, r.value);
+    h("i", null, row, r.label);
+  }
+  tip.style.display = "block";
+  let x, y;
+  if (evt.clientX != null && evt.type !== "focus") { x = evt.clientX; y = evt.clientY; }
+  else { const b = evt.target.getBoundingClientRect(); x = b.left + b.width / 2; y = b.top; }
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(x + 14, innerWidth - tw - 8)) + "px";
+  tip.style.top = Math.max(8, Math.min(y - th - 10, innerHeight - th - 8)) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+function bindTip(node, fn) {
+  node.setAttribute("tabindex", "0");
+  const show = e => { const [t, r] = fn(); showTip(e, t, r); };
+  node.addEventListener("pointermove", show);
+  node.addEventListener("focus", show);
+  node.addEventListener("pointerleave", hideTip);
+  node.addEventListener("blur", hideTip);
+}
+
+/* ---------- scale helpers ---------- */
+function niceStep(raw) {
+  const p = 10 ** Math.floor(Math.log10(raw || 1));
+  return [1, 2, 2.5, 5, 10].map(m => m * p).find(s => s >= raw);
+}
+function yScale(maxV, minV = 0, n = 4) {
+  const step = niceStep(Math.max((maxV - minV) / n, 0.1));
+  const lo = Math.floor(minV / step) * step, hi = Math.max(lo + step, Math.ceil(maxV / step) * step);
+  const t = []; for (let v = lo; v <= hi + 1e-9; v += step) t.push(+v.toFixed(2));
+  return {lo, hi, ticks: t};
+}
+function colPath(x, y, w, hgt, r = 4) {
+  if (hgt <= 0) return "";
+  r = Math.min(r, w / 2, hgt);
+  const b = y + hgt;
+  return `M${x},${b}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${b}Z`;
+}
+function frame(host, height) {
+  host.replaceChildren();
+  const W = Math.max(300, host.clientWidth);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${height}`, role: "img"}, host);
+  return {svg, W};
+}
+function yAxis(svg, sc, x0, x1, y) {
+  for (const t of sc.ticks) {
+    const yy = y(t);
+    el("line", {x1: x0, x2: x1, y1: yy, y2: yy, stroke: t === sc.lo ? "var(--axis)" : "var(--grid)", "stroke-width": 1}, svg);
+    el("text", {x: x0 - 6, y: yy + 4, "text-anchor": "end", class: "tick"}, svg, fmtN(t));
+  }
+}
+function xLabels(svg, labels, xc, y, minGap = 44) {
+  let last = -1e9;
+  labels.forEach((s, i) => {
+    const x = xc(i);
+    if (x - last < minGap) return;
+    last = x;
+    el("text", {x, y, "text-anchor": "middle", class: "tick"}, svg, s);
+  });
+}
+
+/* ---------- weeks ---------- */
+const W = D.tydny;
+function phaseBands(svg, xL, bw, top, bottom) {
+  let i = 0;
+  const groups = [];
+  while (i < W.length) {
+    let j = i;
+    while (j + 1 < W.length && W[j + 1].faze === W[i].faze) j++;
+    groups.push([i, j, W[i].faze]);
+    i = j + 1;
+  }
+  groups.forEach(([a, b, name], k) => {
+    if (!name) return;
+    if (k % 2 === 0) el("rect", {x: xL(a), y: top, width: xL(b) + bw - xL(a), height: bottom - top, fill: "var(--band)"}, svg);
+    el("text", {x: xL(a) + 4, y: top + 12, class: "blabel"}, svg, name);
+  });
+  const ci = W.findIndex(w => w.stav === "current");
+  if (ci >= 0) el("rect", {x: xL(ci), y: top, width: bw, height: bottom - top, fill: "var(--now)"}, svg);
+}
+function racesInWeek(w) { return D.zavody.filter(r => r.datum >= w.tyden && r.datum <= w.konec); }
+
+function volumeChart() {
+  const host = document.getElementById("vol");
+  if (!W.length) { host.replaceChildren(h("div", "empty", null, "Zatím žádná data.")); return; }
+  const H = 260, m = {l: 40, r: 8, t: 20, b: 26};
+  const {svg, W: width} = frame(host, H);
+  const iw = width - m.l - m.r, bw = iw / W.length;
+  const maxV = Math.max(...W.map(w => Math.max(w.plan_km, w.skut_km || 0)), 10);
+  const sc = yScale(maxV);
+  const y = v => m.t + (H - m.t - m.b) * (1 - (v - sc.lo) / (sc.hi - sc.lo));
+  const xL = i => m.l + i * bw;
+  phaseBands(svg, xL, bw, m.t, H - m.b);
+  yAxis(svg, sc, m.l, width - m.r, y);
+  const barW = Math.min(12, Math.max(3, (bw - 6) / 2));
+  W.forEach((w, i) => {
+    const cx = xL(i) + bw / 2;
+    el("path", {d: colPath(cx - barW - 1, y(w.plan_km), barW, y(sc.lo) - y(w.plan_km)), fill: "var(--plan)"}, svg);
+    if (w.skut_km != null)
+      el("path", {d: colPath(cx + 1, y(w.skut_km), barW, y(sc.lo) - y(w.skut_km)), fill: "var(--actual)"}, svg);
+    const rs = racesInWeek(w);
+    if (rs.length) el("text", {x: cx, y: m.t - 4, "text-anchor": "middle", class: "blabel"}, svg, "▼ " + rs.map(r => r.priorita).join(""));
+    const hit = el("rect", {x: xL(i), y: m.t, width: bw, height: H - m.t - m.b, class: "hit"}, svg);
+    bindTip(hit, () => {
+      const rows = [
+        {color: "var(--plan)", value: fmtN(w.plan_km) + " km", label: "plán", box: 1},
+        {color: "var(--actual)", value: w.skut_km == null ? "–" : fmtN(w.skut_km) + " km", label: "skutečnost" + (w.skut_km != null ? ` (${pct(w.skut_km, w.stav === "current" ? w.plan_km_dosud : w.plan_km)})` : ""), box: 1},
+      ];
+      const zt = ZONY.reduce((a, k) => a + (w.plan_zony[k] || 0), 0);
+      if (zt) rows.push({value: Math.round(100 * (zt - (w.plan_zony.E || 0)) / zt) + " %", label: "kvalita v plánu (mimo E)"});
+      if (w.plan_dlouhy) rows.push({value: `${fmtN(w.plan_dlouhy)}${w.skut_dlouhy ? " / " + fmtN(w.skut_dlouhy) : ""} km`, label: "dlouhý běh plán" + (w.skut_dlouhy ? " / skutečnost" : "")});
+      rs.forEach(r => rows.push({value: r.nazev, label: `${fmtD(r.datum)} ${r.priorita}`}));
+      return [`${fmtD(w.tyden)}–${fmtD(w.konec)} · ${w.faze || "bez fáze"}${w.stav === "current" ? " · tento týden" : ""}`, rows];
+    });
+  });
+  xLabels(svg, W.map(w => fmtD(w.tyden)), i => xL(i) + bw / 2, H - 8);
+}
+
+/* ---------- calendar: poslední 4 týdny ---------- */
+const DAY = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function lastWeeks(n, ahead = 0) {
+  const t = new Date(today + "T12:00:00");
+  const mon = new Date(t); mon.setDate(t.getDate() - ((t.getDay() + 6) % 7));
+  const out = [];
+  for (let k = n - 1; k >= -ahead; k--) { const d = new Date(mon); d.setDate(mon.getDate() - 7 * k); out.push(d); }
+  return out;
+}
+function dayISO(mon, k) { const d = new Date(mon); d.setDate(mon.getDate() + k); return iso(d); }
+function weekGrid(host) {
+  const grid = h("div", "cal", host);
+  h("div", "h", grid, "");
+  DAY.forEach(s => h("div", "h", grid, s));
+  return grid;
+}
+/* hlavní smysl běhu: kvalitní pásmo s nejvíc km, pokud tvoří aspoň 10 % běhu; jinak E */
+function mainZone(x) {
+  if (x.hlavni) return x.hlavni;
+  const z = (x.skutecnost && x.skutecnost.zony) || (x.plan && x.plan.zony);
+  if (!z) return "";
+  const tot = ZONY.reduce((a, k) => a + (z[k] || 0), 0);
+  const q = ZONY.slice(1).filter(k => z[k] > 0).sort((a, b) => z[b] - z[a])[0];
+  return q && tot && z[q] / tot >= 0.1 ? q : "E";
+}
+function calendar() {
+  const host = document.getElementById("cal");
+  host.replaceChildren();
+  const byDate = {};
+  D.dny.forEach(x => (byDate[x.datum] ||= []).push(x));
+  const SYM = {splneno: "✓", nahrazeno: "↺", zkraceno: "≈", vynechano: "✕"};
+  const CLS = {splneno: "good", nahrazeno: "good", zkraceno: "warn", vynechano: "bad"};
+  const SLOV = {splneno: "splněno", nahrazeno: "nahrazeno", zkraceno: "zkráceno", vynechano: "vynecháno"};
+  const grid = weekGrid(host);
+  lastWeeks(4, 4).forEach(mon => {
+    h("div", "w", grid, fmtD(iso(mon)));
+    for (let k = 0; k < 7; k++) {
+      const ds = dayISO(mon, k);
+      const items = (byDate[ds] || []).filter(x => x.typ !== "volno");
+      const run = items.find(x => (x.typ || "run") === "run");
+      const str = items.find(x => x.typ === "strength");
+      const main = run || str;
+      const c = h("div", "c", grid);
+      if (main) {
+        const st = main.stav;
+        const free = !st && ds < today && main.skutecnost;  // odběhnuto mimo plán
+        c.classList.add(st ? CLS[st] : free ? "free" : "plan");
+        const top = h("span", null, c);
+        if (st) top.append(SYM[st] + " ");
+        h("b", null, top, run ? mainZone(run) : "S");
+        if (run) {
+          const km = (run.skutecnost && run.skutecnost.km) || (run.plan && run.plan.km);
+          if (km) h("span", null, c, fmtN(km));
+          if (str) h("span", "s", c, "S");
+        }
+        bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}`, items.map(x => ({
+          value: x.nazev || x.typ,
+          label: (x.plan && x.plan.km ? `plán ${fmtN(x.plan.km)} km` : "") +
+                 (x.skutecnost && x.skutecnost.km ? ` · ${fmtN(x.skutecnost.km)} km` : "") +
+                 (x.stav ? ` · ${SLOV[x.stav]}` : (ds < today ? " · nevyhodnoceno" : "")),
+        })).concat(items.filter(x => x.hodnoceni).map(x => ({value: "", label: x.hodnoceni})))]);
+      }
+      if (ds === today) c.classList.add("today");
+    }
+  });
+}
+
+/* ---------- regenerace: verdikt podle references/wellness.md ---------- */
+const WL = (D.wellness || []).slice().sort((a, b) => a.datum < b.datum ? -1 : 1);
+const VERDICT = ["V pořádku", "Pozor", "Problém"];
+const VADVICE = ["trénuj podle plánu", "zvaž lehčí den nebo posun kvality", "zvolni – volno nebo jen krátce a lehce"];
+const n1 = v => (Math.round(v * 10) / 10).toLocaleString("cs-CZ");
+function avgOf(arr, k) {
+  const v = arr.map(a => a[k]).filter(v => v != null);
+  return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
+}
+function hrvLow(i) {
+  const x = WL[i];
+  if (x.hrv_dolni != null) return x.hrv_dolni;
+  const prev = WL.slice(Math.max(0, i - 28), i).filter(a => a.hrv != null);
+  return prev.length >= 5 ? avgOf(prev, "hrv") * 0.88 : null;
+}
+function rhrDiff(i) {
+  if (i < 0 || WL[i].rhr == null) return null;
+  const prev = WL.slice(Math.max(0, i - 7), i).filter(a => a.rhr != null);
+  return prev.length >= 3 ? WL[i].rhr - avgOf(prev, "rhr") : null;
+}
+const badSleep = x => x && ((x.spanek_h != null && x.spanek_h < 6) || (x.spanek_skore != null && x.spanek_skore < 50));
+function wellEval(i) {
+  const x = WL[i], sig = [];
+  if (x.readiness != null) {
+    const l = x.readiness >= 60 ? 0 : x.readiness >= 40 ? 1 : 2;
+    sig.push({k: "Připravenost", l, t: [`Připravenost ${x.readiness} – dobrá`,
+      `Připravenost ${x.readiness} – střední, tělo se ještě zotavuje`, `Připravenost ${x.readiness} – nízká`][l]});
+  }
+  if (x.hrv != null) {
+    const low = hrvLow(i);
+    let run = 0;
+    for (let j = i; j >= 0 && WL[j].hrv != null && hrvLow(j) != null && WL[j].hrv < hrvLow(j); j--) run++;
+    const st = (x.hrv_status || "").toUpperCase();
+    const l = st === "LOW" || st === "POOR" || run >= 3 ? 2 : st === "UNBALANCED" || run >= 1 ? 1 : 0;
+    const t = l === 0 ? `HRV ${x.hrv} ms – v tvém normálu`
+      : run >= 3 ? `HRV pod normálem už ${run} noci po sobě (${x.hrv} ms)`
+      : run >= 1 ? `HRV ${x.hrv} ms – pod tvým normálem (obvykle od ${Math.round(low)} ms)`
+      : `HRV nevyrovnaná (Garmin: ${st})`;
+    sig.push({k: "HRV", l, t});
+  }
+  if (x.spanek_h != null || x.spanek_skore != null) {
+    const s = x.spanek_h, sc = x.spanek_skore;
+    const l = badSleep(x) && badSleep(WL[i - 1]) ? 2
+      : badSleep(x) || (s != null && s < 7) || (sc != null && sc < 70) ? 1 : 0;
+    const desc = [s != null ? n1(s) + " h" : null, sc != null ? "skóre " + sc : null].filter(Boolean).join(", ");
+    sig.push({k: "Spánek", l, t: [`Spánek ${desc} – dobrý`, `Spánek ${desc} – kratší / horší`,
+      `Špatný spánek 2 noci po sobě (${desc})`][l]});
+  }
+  const d = rhrDiff(i);
+  if (d != null) {
+    const dp = rhrDiff(i - 1);
+    const l = d >= 7 || (d >= 4 && dp != null && dp >= 4) ? 2 : d >= 4 ? 1 : 0;
+    sig.push({k: "Klidový tep", l, t: l === 0 ? `Klidový tep ${x.rhr} – normální`
+      : `Klidový tep ${x.rhr} – o ${Math.round(d)} vyšší než obvykle${l === 2 && d < 7 ? " (2. den)" : ""}`});
+  }
+  if (x.bb_rano != null) {
+    const l = x.bb_rano >= 60 ? 0 : x.bb_rano >= 35 ? 1 : 2;
+    sig.push({k: "Body Battery", l, t: [`Body Battery ráno ${x.bb_rano} – nabitý`,
+      `Body Battery ráno jen ${x.bb_rano}`, `Body Battery ráno ${x.bb_rano} – vybitý`][l]});
+  }
+  const reds = sig.filter(s => s.l === 2).length, yel = sig.filter(s => s.l === 1).length;
+  return {datum: x.datum, sig, l: reds >= 2 ? 2 : reds === 1 || yel >= 2 ? 1 : 0};
+}
+const WEVAL = WL.map((_, i) => wellEval(i)).filter(e => e.datum <= today);
+
+function wellStatus() {
+  const host = document.getElementById("wstat");
+  host.replaceChildren();
+  if (!WEVAL.length) { h("div", "empty", host, "Wellness data zatím nejsou (Garmin)."); return; }
+  // závěr je v dlaždici nahoře; tady jen co je dnes mimo normál a zastaralá data
+  const e = WEVAL[WEVAL.length - 1], age = days(e.datum, today);
+  if (age >= 2) h("div", "muted", host, `Pozor, poslední data jsou ${age} dny stará – hodinky se nesynchronizovaly?`);
+  const bad = e.sig.filter(s => s.l > 0).sort((a, b) => b.l - a.l);
+  if (bad.length) {
+    const ul = h("ul", "sig", host);
+    bad.forEach(s => { const li = h("li", null, ul); h("i", "dot l" + s.l, li); h("span", null, li, s.t); });
+  }
+  // poslední 4 týdny ve stejné mřížce jako plnění
+  const byD = Object.fromEntries(WEVAL.map(x => [x.datum, x]));
+  const grid = weekGrid(host);
+  const SYMW = ["✓", "!", "✕"];
+  const weeks = lastWeeks(4);
+  weeks.forEach(mon => {
+    h("div", "w", grid, fmtD(iso(mon)));
+    for (let k = 0; k < 7; k++) {
+      const ds = dayISO(mon, k), x = byD[ds];
+      const c = h("div", "c" + (x ? " " + ["good", "warn", "bad"][x.l] : ""), grid);
+      if (x) h("b", null, c, SYMW[x.l]);
+      if (ds === today) c.classList.add("today");
+      if (ds <= today) bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}` + (x ? " · " + VERDICT[x.l] : " · bez dat"),
+        x ? (x.sig.some(s => s.l > 0) ? x.sig.filter(s => s.l > 0) : [{t: "vše v normálu", l: 0}])
+          .map(s => ({value: "", label: s.t, color: `var(--${["good", "warning", "critical"][s.l]})`, box: true})) : []]);
+    }
+  });
+  const from = iso(weeks[0]);
+  const last = WEVAL.filter(x => x.datum >= from);
+  const cnt = [0, 1, 2].map(l => last.filter(x => x.l === l).length);
+  h("div", "muted", host, `4 týdny: ${cnt[0]}× v pořádku · ${cnt[1]}× pozor · ${cnt[2]}× problém.`);
+}
+
+/* ---------- tiles, table, adjustments ---------- */
+function tiles() {
+  const host = document.getElementById("tiles");
+  host.replaceChildren();
+  const tile = (label, value, sub) => {
+    const t = h("div", "tile", host);
+    h("div", "label", t, label); h("div", "value", t, value); if (sub) h("div", "sub", t, sub);
+  };
+  const next = D.zavody.filter(r => r.datum >= today).sort((a, b) => a.datum < b.datum ? -1 : 1);
+  const a = next.find(r => r.priorita === "A") || next[0];
+  if (a) tile(`Do závodu ${a.priorita}`, days(today, a.datum) + " dní", `${a.nazev} · ${fmtD(a.datum)}${a.cil ? " · cíl " + a.cil : ""}`);
+  const cur = W.find(w => w.stav === "current");
+  if (cur) tile("Tento týden", `${fmtN(cur.skut_km || 0)} / ${fmtN(cur.plan_km)} km`,
+    `${cur.faze ? cur.faze + " " + cur.faze_idx + "/" + cur.faze_tot + " · " : ""}tréninky ${cur.splneno}/${cur.treninku_dosud} · síla ${cur.sila_hotovo}/${cur.sila_plan}`);
+  const we = WEVAL[WEVAL.length - 1];
+  if (we) {
+    const t = h("div", "tile", host);
+    h("div", "label", t, "Regenerace");
+    const val = h("div", "value", t); h("i", "dot l" + we.l, val); val.append(VERDICT[we.l]);
+    const bad = we.sig.filter(s => s.l > 0).sort((a, b) => b.l - a.l);
+    h("div", "sub", t, (bad.length ? bad.map(s => s.k).join(", ") : "vše v normálu") + ` · ${fmtD(we.datum)}`);
+  }
+}
+
+/* ---------- plán sezóny: časová osa, fáze, závody ---------- */
+function planOverview() {
+  const F = (D.faze || []).slice().sort((a, b) => a.od < b.od ? -1 : 1);
+  const R = (D.zavody || []).slice().sort((a, b) => a.datum < b.datum ? -1 : 1);
+  const host = document.getElementById("plan");
+  host.replaceChildren();
+  if (!F.length) { h("div", "empty", host, "Plán zatím není."); return; }
+  const t0 = new Date(F[0].od + "T12:00:00"), t1 = new Date(F[F.length - 1].do + "T12:00:00");
+  const pos = s => Math.max(0, Math.min(100, 100 * (new Date(s + "T12:00:00") - t0) / (t1 - t0)));
+  const cur = F.find(f => f.od <= today && today <= f.do);
+
+  // časová osa
+  const tl = h("div", "tl", host);
+  const races = h("div", "tl-races", tl);
+  R.filter(r => r.datum >= F[0].od && r.datum <= F[F.length - 1].do).forEach(r => {
+    const m = h("span", "tl-race" + (r.priorita === "A" ? " a" : ""), races, "▼" + r.priorita);
+    m.style.left = pos(r.datum) + "%";
+    bindTip(m, () => [`${fmtD(r.datum)} · ${r.nazev}`, [{value: r.trat || "", label: r.cil ? "cíl " + r.cil : ""}]]);
+  });
+  const bar = h("div", "tl-bar", tl);
+  F.forEach(f => {
+    const seg = h("div", "tl-seg" + (f === cur ? " cur" : f.do < today ? " past" : ""), bar, f.nazev);
+    seg.style.left = pos(f.od) + "%";
+    seg.style.width = `calc(${pos(f.do) - pos(f.od)}% - 2px)`;
+    bindTip(seg, () => [f.nazev, [{value: `${fmtD(f.od)}–${fmtD(f.do)}`, label: f.objem ? f.objem + " km/týden" : ""}]]);
+  });
+  // úzké fáze: zkrátit popisek na první písmeno, případně skrýt (celý název je v bublince)
+  bar.querySelectorAll(".tl-seg").forEach(seg => {
+    if (seg.scrollWidth > seg.clientWidth) seg.textContent = seg.textContent[0];
+    if (seg.scrollWidth > seg.clientWidth) seg.textContent = "";
+  });
+  if (today >= F[0].od && today <= F[F.length - 1].do) {
+    const n = h("div", "tl-now", bar); n.style.left = pos(today) + "%";
+  }
+
+  const cols = h("div", "grid2 plan-cols", host);
+  // fáze
+  const fl = h("div", null, cols);
+  h("h3", null, fl, "Fáze");
+  F.forEach(f => {
+    const row = h("div", "pf" + (f === cur ? " cur" : f.do < today ? " past" : ""), fl);
+    const head = h("div", "pf-head", row);
+    h("b", null, head, f.nazev);
+    const weeks = Math.round((new Date(f.do) - new Date(f.od)) / 864e5 / 7);
+    h("span", "muted", head, `${fmtD(f.od)}–${fmtD(f.do)} · ${weeks} t${f.objem ? " · " + f.objem + " km/týden" : ""}`);
+    if (f === cur) h("span", "pill", head, "teď");
+    if (f.smysl) h("div", "pf-text", row, f.smysl);
+  });
+  // závody
+  const rl = h("div", null, cols);
+  h("h3", null, rl, "Závody");
+  R.forEach(r => {
+    const row = h("div", "pr" + (r.datum < today ? " past" : ""), rl);
+    h("span", "prio p" + r.priorita, row, r.priorita);
+    const body = h("div", null, row);
+    h("b", null, body, r.nazev);
+    h("div", "muted", body, [fmtD(r.datum) + r.datum.slice(0, 4), r.trat, r.cil ? "cíl " + r.cil : ""].filter(Boolean).join(" · "));
+  });
+}
+
+function render() {
+  document.getElementById("sub").textContent =
+    `${D.atlet ? D.atlet + " · " : ""}vygenerováno ${fmtD(today)}${today.slice(0, 4)}`;
+  tiles(); volumeChart(); calendar(); wellStatus(); planOverview();
+}
+render();
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 150); });
+</script>
+</body>
+</html>
