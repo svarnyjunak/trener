@@ -67,3 +67,7 @@ python scripts/prehled.py html --data trenink/data.json --out trenink/dashboard.
 ```
 
 > Propojení s Garminem používá neoficiální knihovnu `garminconnect`. Přihlašovací údaje se zadávají jen do terminálu, nikdy do chatu.
+
+### Licence
+
+[MIT](LICENSE) © 2026 Martin Bartoš
