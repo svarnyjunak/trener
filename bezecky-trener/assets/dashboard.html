@@ -19,6 +19,7 @@
   --border: rgba(11,11,11,0.10);
   --plan: #c3c2b7;
   --actual: #2a78d6;
+  --quality: #eb6834; --short: #86b6ef;
   --z-E: #86b6ef; --z-M: #5598e7; --z-T: #2a78d6; --z-I: #1c5cab; --z-R: #104281;
   --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
   --band: rgba(42,120,214,0.06);
@@ -30,7 +31,7 @@
     --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
     --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --plan: #52514e; --actual: #3987e5;
+    --plan: #52514e; --actual: #3987e5; --quality: #d95926; --short: #184f95;
     --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
     --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
   }
@@ -40,7 +41,7 @@
   --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
   --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-  --plan: #52514e; --actual: #3987e5;
+  --plan: #52514e; --actual: #3987e5; --quality: #d95926; --short: #184f95;
   --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
   --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
 }
@@ -114,10 +115,14 @@ svg text { font-family: inherit; }
 }
 .cal .c.plan { background: transparent; box-shadow: inset 0 0 0 1px var(--axis); }
 .cal .c.free { background: var(--plan); color: var(--text-primary); }
-.cal .c.good { background: var(--good); color: #fff; }
+.cal .c.done { background: var(--actual); color: #fff; }
+.cal .c.short { background: var(--short); color: var(--text-primary); }
+.cal .c.miss { background: var(--critical); color: #fff; }
+.cal .c.good { background: var(--surface-2); color: var(--text-secondary); }
+.cal .c.nodata { background: transparent; }
 .cal .c.warn { background: var(--warning); color: #0b0b0b; }
 .cal .c.bad { background: var(--critical); color: #fff; }
-.cal .c.race { outline: 2px solid var(--actual); outline-offset: -2px; }
+.cal .c.race { outline: 2px solid var(--text-primary); outline-offset: -2px; }
 .cal .c.race b { letter-spacing: -0.5px; }
 #tip .wr .wn { color: var(--actual); }
 .cal .c.today { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--text-primary); }
@@ -186,7 +191,7 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
 
   <div class="card">
     <h2>Týdenní objem</h2>
-    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span><span><i class="sw" style="background:var(--critical)"></i>Kvalita (M/T/I/R)</span></div>
+    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span><span><i class="sw" style="background:var(--quality)"></i>Kvalita (M/T/I/R)</span></div>
     <div class="chart" id="vol"></div>
   </div>
 
@@ -194,19 +199,19 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
     <div class="card">
       <h2>Plnění tréninků</h2>
       <div class="legend">
-        <span><i class="sw" style="background:var(--good)"></i>✓ splněno</span>
-        <span><i class="sw" style="background:var(--warning)"></i>≈ zkráceno</span>
+        <span><i class="sw" style="background:var(--actual)"></i>✓ splněno</span>
+        <span><i class="sw" style="background:var(--short)"></i>≈ zkráceno</span>
         <span><i class="sw" style="background:var(--critical)"></i>✕ vynecháno</span>
         <span><i class="sw" style="background:var(--plan)"></i>mimo plán</span>
         <span><i class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></i>naplánováno</span>
-        <span><i class="sw" style="box-shadow:inset 0 0 0 2px var(--actual)"></i>▼ závod A/B/C</span>
+        <span><i class="sw" style="box-shadow:inset 0 0 0 2px var(--text-primary)"></i>▼ závod A/B/C</span>
       </div>
       <div id="cal"></div>
     </div>
     <div class="card">
       <h2>Regenerace</h2>
       <div class="legend">
-        <span><i class="sw" style="background:var(--good)"></i>✓ v pořádku</span>
+        <span><i class="sw" style="background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--axis)"></i>✓ v pořádku</span>
         <span><i class="sw" style="background:var(--warning)"></i>! pozor</span>
         <span><i class="sw" style="background:var(--critical)"></i>✕ problém</span>
       </div>
@@ -357,8 +362,8 @@ function volumeChart() {
     el("path", {d: colPath(x, y(km), barW, y(sc.lo) - y(km)), fill}, svg);
     const q = Math.min(km, qual(zony));
     if (q <= 0) return;
-    if (q >= km) el("path", {d: colPath(x, y(q), barW, y(sc.lo) - y(q)), fill: "var(--critical)"}, svg);
-    else el("rect", {x, y: y(q), width: barW, height: y(sc.lo) - y(q), fill: "var(--critical)"}, svg);
+    if (q >= km) el("path", {d: colPath(x, y(q), barW, y(sc.lo) - y(q)), fill: "var(--quality)"}, svg);
+    else el("rect", {x, y: y(q), width: barW, height: y(sc.lo) - y(q), fill: "var(--quality)"}, svg);
   };
   W.forEach((w, i) => {
     const cx = xL(i) + bw / 2;
@@ -373,10 +378,10 @@ function volumeChart() {
         {color: "var(--actual)", value: w.skut_km == null ? "–" : fmtN(w.skut_km) + " km", label: "skutečnost" + (w.skut_km != null ? ` (${pct(w.skut_km, w.stav === "current" ? w.plan_km_dosud : w.plan_km)})` : ""), box: 1},
       ];
       const zt = ZONY.reduce((a, k) => a + (w.plan_zony[k] || 0), 0);
-      if (zt) rows.push({color: "var(--critical)", box: 1, value: fmtN(qual(w.plan_zony)) + " km",
+      if (zt) rows.push({color: "var(--quality)", box: 1, value: fmtN(qual(w.plan_zony)) + " km",
         label: `kvalita v plánu (${Math.round(100 * qual(w.plan_zony) / zt)} %)`});
       const st = w.skut_zony ? ZONY.reduce((a, k) => a + (w.skut_zony[k] || 0), 0) : 0;
-      if (st) rows.push({color: "var(--critical)", box: 1, value: fmtN(qual(w.skut_zony)) + " km",
+      if (st) rows.push({color: "var(--quality)", box: 1, value: fmtN(qual(w.skut_zony)) + " km",
         label: `kvalita ve skutečnosti (${Math.round(100 * qual(w.skut_zony) / st)} %)`});
       if (w.plan_dlouhy) rows.push({value: `${fmtN(w.plan_dlouhy)}${w.skut_dlouhy ? " / " + fmtN(w.skut_dlouhy) : ""} km`, label: "dlouhý běh plán" + (w.skut_dlouhy ? " / skutečnost" : "")});
       rs.forEach(r => rows.push({value: r.nazev, label: `${fmtD(r.datum)} ${r.priorita}`}));
@@ -470,7 +475,7 @@ function calendar() {
   const byDate = {};
   D.dny.forEach(x => (byDate[x.datum] ||= []).push(x));
   const SYM = {splneno: "✓", nahrazeno: "↺", zkraceno: "≈", vynechano: "✕"};
-  const CLS = {splneno: "good", nahrazeno: "good", zkraceno: "warn", vynechano: "bad"};
+  const CLS = {splneno: "done", nahrazeno: "done", zkraceno: "short", vynechano: "miss"};
   const SLOV = {splneno: "splněno", nahrazeno: "nahrazeno", zkraceno: "zkráceno", vynechano: "vynecháno"};
   const grid = weekGrid(host);
   /* dopředu až do týdne posledního naplánovaného tréninku */
@@ -592,7 +597,7 @@ function wellStatus() {
     h("div", "w", grid, fmtD(iso(mon)));
     for (let k = 0; k < 7; k++) {
       const ds = dayISO(mon, k), x = byD[ds];
-      const c = h("div", "c" + (x ? " " + ["good", "warn", "bad"][x.l] : ""), grid);
+      const c = h("div", "c " + (x ? ["good", "warn", "bad"][x.l] : "nodata"), grid);
       if (x) h("b", null, c, SYMW[x.l]);
       if (ds === today) c.classList.add("today");
       if (ds <= today) bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}` + (x ? " · " + VERDICT[x.l] : " · bez dat"),
