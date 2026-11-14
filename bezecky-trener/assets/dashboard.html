@@ -18,12 +18,12 @@
   --axis: #c3c2b7;
   --border: rgba(11,11,11,0.10);
   --plan: #c3c2b7;
-  --actual: #2a78d6;
-  --quality: #eb6834; --short: #86b6ef;
+  --actual: #2e8b55;
+  --quality: #f0944f; --quality-plan: rgba(240,148,79,0.5); --short: #e8873a;
   --z-E: #86b6ef; --z-M: #5598e7; --z-T: #2a78d6; --z-I: #1c5cab; --z-R: #104281;
-  --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
-  --band: rgba(42,120,214,0.06);
-  --now: rgba(42,120,214,0.10);
+  --good: #2e8b55; --warning: #e8ab2a; --critical: #cf4b40;
+  --band: rgba(46,139,85,0.06);
+  --now: rgba(46,139,85,0.11);
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
@@ -31,9 +31,10 @@
     --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
     --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --plan: #52514e; --actual: #3987e5; --quality: #d95926; --short: #184f95;
+    --plan: #52514e; --actual: #379a5d; --quality: #f0a35e; --quality-plan: rgba(240,163,94,0.45); --short: #e08a3c;
+    --good: #379a5d; --warning: #dfa52a; --critical: #d4554a;
     --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
-    --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
+    --band: rgba(55,154,93,0.08); --now: rgba(55,154,93,0.17);
   }
 }
 :root[data-theme="dark"] {
@@ -41,9 +42,10 @@
   --page: #0d0d0d; --surface-1: #1a1a19; --surface-2: #232321;
   --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-  --plan: #52514e; --actual: #3987e5; --quality: #d95926; --short: #184f95;
+  --plan: #52514e; --actual: #379a5d; --quality: #f0a35e; --quality-plan: rgba(240,163,94,0.45); --short: #e08a3c;
+    --good: #379a5d; --warning: #dfa52a; --critical: #d4554a;
   --z-E: #184f95; --z-M: #256abf; --z-T: #3987e5; --z-I: #6da7ec; --z-R: #9ec5f4;
-  --band: rgba(57,135,229,0.08); --now: rgba(57,135,229,0.16);
+  --band: rgba(55,154,93,0.08); --now: rgba(55,154,93,0.17);
 }
 * { box-sizing: border-box; }
 body {
@@ -116,9 +118,14 @@ svg text { font-family: inherit; }
 .cal .c.plan { background: transparent; box-shadow: inset 0 0 0 1px var(--axis); }
 .cal .c.free { background: var(--plan); color: var(--text-primary); }
 .cal .c.done { background: var(--actual); color: #fff; }
-.cal .c.short { background: var(--short); color: var(--text-primary); }
+.cal .c.short { background: var(--short); color: #1a1a19; }
+/* trénink upravený kvůli problému (únava, wellness, bolest) – oranžový růžek */
+.cal .c.adj::before { content: ""; position: absolute; top: 0; left: 0; width: 0; height: 0;
+  border-top: 11px solid var(--short); border-right: 11px solid transparent; border-top-left-radius: 6px; }
+#tip .wa { margin-top: 3px; color: var(--text-secondary); }
+#tip .wa .sw { background: var(--short); margin-right: 6px; vertical-align: -1px; }
 .cal .c.miss { background: var(--critical); color: #fff; }
-.cal .c.good { background: var(--surface-2); color: var(--text-secondary); }
+.cal .c.good { background: var(--good); color: #fff; }
 .cal .c.nodata { background: transparent; }
 .cal .c.warn { background: var(--warning); color: #0b0b0b; }
 .cal .c.bad { background: var(--critical); color: #fff; }
@@ -145,7 +152,7 @@ ul.upr li { margin: 3px 0; }
 .verdict { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; margin: 4px 0 10px; }
 .verdict .dot { width: 16px; height: 16px; }
 .verdict .muted { font-size: 13px; font-weight: 400; }
-ul.sig { list-style: none; margin: 0 0 8px; padding: 0; }
+ul.sig { list-style: none; margin: 12px 0 8px; padding: 0; }
 ul.sig li { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
 .wstrip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; margin: 12px 0 4px; max-width: 520px; }
 .wstrip .c { height: 26px; border-radius: 5px; background: var(--surface-2); color: var(--text-muted);
@@ -191,7 +198,7 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
 
   <div class="card">
     <h2>Týdenní objem</h2>
-    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span><span><i class="sw" style="background:var(--quality)"></i>Kvalita (M/T/I/R)</span></div>
+    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span><span><i class="sw" style="background:linear-gradient(var(--quality-plan),var(--quality-plan)),var(--plan)"></i>Kvalita v plánu (M/T/I/R)</span><span><i class="sw" style="background:var(--quality)"></i>Kvalita odběhnutá</span></div>
     <div class="chart" id="vol"></div>
   </div>
 
@@ -203,15 +210,14 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
         <span><i class="sw" style="background:var(--short)"></i>≈ zkráceno</span>
         <span><i class="sw" style="background:var(--critical)"></i>✕ vynecháno</span>
         <span><i class="sw" style="background:var(--plan)"></i>mimo plán</span>
-        <span><i class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></i>naplánováno</span>
-        <span><i class="sw" style="box-shadow:inset 0 0 0 2px var(--text-primary)"></i>▼ závod A/B/C</span>
+        <span><i class="sw" style="background:linear-gradient(135deg,var(--short) 50%,var(--surface-2) 50%)"></i>upraveno</span>
       </div>
       <div id="cal"></div>
     </div>
     <div class="card">
       <h2>Regenerace</h2>
       <div class="legend">
-        <span><i class="sw" style="background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--axis)"></i>✓ v pořádku</span>
+        <span><i class="sw" style="background:var(--good)"></i>✓ v pořádku</span>
         <span><i class="sw" style="background:var(--warning)"></i>! pozor</span>
         <span><i class="sw" style="background:var(--critical)"></i>✕ problém</span>
       </div>
@@ -358,17 +364,20 @@ function volumeChart() {
   yAxis(svg, sc, m.l, width - m.r, y);
   const barW = Math.min(12, Math.max(3, (bw - 6) / 2));
   /* sloupec s kvalitou (km mimo E) jako červenou spodní částí */
-  const bar = (x, km, zony, fill) => {
+  const bar = (x, km, zony, fill, qfill) => {
     el("path", {d: colPath(x, y(km), barW, y(sc.lo) - y(km)), fill}, svg);
     const q = Math.min(km, qual(zony));
     if (q <= 0) return;
-    if (q >= km) el("path", {d: colPath(x, y(q), barW, y(sc.lo) - y(q)), fill: "var(--quality)"}, svg);
-    else el("rect", {x, y: y(q), width: barW, height: y(sc.lo) - y(q), fill: "var(--quality)"}, svg);
+    if (q >= km) el("path", {d: colPath(x, y(q), barW, y(sc.lo) - y(q)), fill: qfill}, svg);
+    else {
+      el("rect", {x, y: y(q), width: barW, height: y(sc.lo) - y(q), fill: qfill}, svg);
+      el("rect", {x, y: y(q) - 2, width: barW, height: 2, fill: "var(--surface-1)"}, svg);
+    }
   };
   W.forEach((w, i) => {
     const cx = xL(i) + bw / 2;
-    bar(cx - barW - 1, w.plan_km, w.plan_zony, "var(--plan)");
-    if (w.skut_km != null) bar(cx + 1, w.skut_km, w.skut_zony, "var(--actual)");
+    bar(cx - barW - 1, w.plan_km, w.plan_zony, "var(--plan)", "var(--quality-plan)");
+    if (w.skut_km != null) bar(cx + 1, w.skut_km, w.skut_zony, "var(--actual)", "var(--quality)");
     const rs = racesInWeek(w);
     if (rs.length) el("text", {x: cx, y: m.t - 4, "text-anchor": "middle", class: "blabel"}, svg, "▼ " + rs.map(r => r.priorita).join(""));
     const hit = el("rect", {x: xL(i), y: m.t, width: bw, height: H - m.t - m.b, class: "hit"}, svg);
@@ -378,7 +387,7 @@ function volumeChart() {
         {color: "var(--actual)", value: w.skut_km == null ? "–" : fmtN(w.skut_km) + " km", label: "skutečnost" + (w.skut_km != null ? ` (${pct(w.skut_km, w.stav === "current" ? w.plan_km_dosud : w.plan_km)})` : ""), box: 1},
       ];
       const zt = ZONY.reduce((a, k) => a + (w.plan_zony[k] || 0), 0);
-      if (zt) rows.push({color: "var(--quality)", box: 1, value: fmtN(qual(w.plan_zony)) + " km",
+      if (zt) rows.push({color: "linear-gradient(var(--quality-plan),var(--quality-plan)),var(--plan)", box: 1, value: fmtN(qual(w.plan_zony)) + " km",
         label: `kvalita v plánu (${Math.round(100 * qual(w.plan_zony) / zt)} %)`});
       const st = w.skut_zony ? ZONY.reduce((a, k) => a + (w.skut_zony[k] || 0), 0) : 0;
       if (st) rows.push({color: "var(--quality)", box: 1, value: fmtN(qual(w.skut_zony)) + " km",
@@ -457,6 +466,7 @@ function dayTip(items, ds, SLOV, race) {
     const nm = h("div", "wn", wo, x.nazev || x.typ);
     if (x.stav) h("span", null, nm, " · " + SLOV[x.stav]);
     else if (ds < today) h("span", null, nm, " · nevyhodnoceno");
+    if (x.upraveno) { const a = h("div", "wa", wo); h("span", "sw", a); a.append("Upraveno: " + x.upraveno); }
     if (x.kroky && x.kroky.length) stepList(x.kroky, wo);
     const p = x.plan || {}, s = x.skutecnost || {};
     const plan = [p.km && fmtN(p.km) + " km", p.min && fmtMin(p.min)].filter(Boolean).join(" · ");
@@ -496,6 +506,7 @@ function calendar() {
         const free = main && !st && ds < today && main.skutecnost;  // odběhnuto mimo plán
         c.classList.add(st ? CLS[st] : free ? "free" : "plan");
         if (race) c.classList.add("race");
+        if (items.some(x => x.upraveno)) c.classList.add("adj");
         const top = h("span", null, c);
         if (st) top.append(SYM[st] + " ");
         h("b", null, top, race ? "▼" + race.priorita : run ? mainZone(run) : "S");
@@ -583,11 +594,6 @@ function wellStatus() {
   // závěr je v dlaždici nahoře; tady jen co je dnes mimo normál a zastaralá data
   const e = WEVAL[WEVAL.length - 1], age = days(e.datum, today);
   if (age >= 2) h("div", "muted", host, `Pozor, poslední data jsou ${age} dny stará – hodinky se nesynchronizovaly?`);
-  const bad = e.sig.filter(s => s.l > 0).sort((a, b) => b.l - a.l);
-  if (bad.length) {
-    const ul = h("ul", "sig", host);
-    bad.forEach(s => { const li = h("li", null, ul); h("i", "dot l" + s.l, li); h("span", null, li, s.t); });
-  }
   // poslední 4 týdny ve stejné mřížce jako plnění
   const byD = Object.fromEntries(WEVAL.map(x => [x.datum, x]));
   const grid = weekGrid(host);
@@ -605,6 +611,11 @@ function wellStatus() {
           .map(s => ({value: "", label: s.t, color: `var(--${["good", "warning", "critical"][s.l]})`, box: true})) : []]);
     }
   });
+  const bad = e.sig.filter(s => s.l > 0).sort((a, b) => b.l - a.l);
+  if (bad.length) {
+    const ul = h("ul", "sig", host);
+    bad.forEach(s => { const li = h("li", null, ul); h("i", "dot l" + s.l, li); h("span", null, li, s.t); });
+  }
   const from = iso(weeks[0]);
   const last = WEVAL.filter(x => x.datum >= from);
   const cnt = [0, 1, 2].map(l => last.filter(x => x.l === l).length);

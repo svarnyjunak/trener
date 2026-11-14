@@ -23,6 +23,8 @@ Formát data.json:
   "vdot":   [{"datum": "2026-10-12", "vdot": 46.3, "zdroj": "10 km 44:10"}],
   "upravy": [{"datum": "2026-11-12", "duvod": "HRV LOW 3 dny", "zmena": "I → E 8 km"}]
 }
+Volitelně u dne "upraveno": "důvod → změna", když se trénink upravil kvůli problému (wellness,
+bolest, nemoc) – dashboard ho označí oranžovým růžkem.
 Volitelně u dne "popis" a "kroky" (stejný formát jako "steps" v garmin.py) – kompletní trénink do
 bublinky v kalendáři. Když chybí, html je doplní z trenink/garmin/*.json podle data a typu.
 typ: run | strength | other;  stav: splneno | zkraceno | vynechano | nahrazeno | null (zatím nevyhodnoceno)
