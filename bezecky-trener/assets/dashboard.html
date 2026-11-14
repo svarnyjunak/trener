@@ -89,6 +89,20 @@ svg text { font-family: inherit; }
 #tip .r { display: flex; align-items: center; gap: 6px; }
 #tip .r b { font-weight: 600; font-variant-numeric: tabular-nums; }
 #tip .r i { font-style: normal; color: var(--text-secondary); }
+#tip.wide { max-width: min(360px, calc(100vw - 16px)); }
+#tip .wo + .wo { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+#tip .wn { font-weight: 600; }
+#tip .wn span { font-weight: 400; color: var(--text-secondary); }
+#tip ol { list-style: none; margin: 6px 0 0; padding: 0; }
+#tip ol ol { margin: 2px 0 0 10px; padding-left: 8px; border-left: 2px solid var(--grid); }
+#tip li { margin-top: 3px; }
+#tip li .k { display: inline-block; min-width: 56px; color: var(--text-muted); }
+#tip li b { font-weight: 600; font-variant-numeric: tabular-nums; }
+#tip li b.k { color: var(--text-primary); }
+#tip li em { font-style: normal; color: var(--actual); font-weight: 600; font-variant-numeric: tabular-nums; }
+#tip li small { display: block; color: var(--text-secondary); font-size: 11px; margin-left: 56px; }
+#tip .ws { margin-top: 6px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+#tip .wh { margin-top: 4px; color: var(--text-secondary); font-style: italic; }
 .cal { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); gap: 3px; font-size: 11px; }
 .cal .h { color: var(--text-muted); text-align: center; }
 .cal .w { color: var(--text-muted); align-self: center; font-variant-numeric: tabular-nums; }
@@ -233,7 +247,9 @@ function h(tag, cls, parent, text) {
 function showTip(evt, title, rows) {
   tip.replaceChildren();
   h("div", "t", tip, title);
-  for (const r of rows) {
+  tip.classList.toggle("wide", rows instanceof Node);
+  if (rows instanceof Node) tip.appendChild(rows);
+  else for (const r of rows) {
     const row = h("div", "r", tip);
     if (r.color) { const k = h("span", r.box ? "sw" : "lk", row); k.style.background = r.color; }
     h("b", null, row, r.value);
@@ -380,6 +396,53 @@ function mainZone(x) {
   const q = ZONY.slice(1).filter(k => z[k] > 0).sort((a, b) => z[b] - z[a])[0];
   return q && tot && z[q] / tot >= 0.1 ? q : "E";
 }
+/* kompletní trénink do bublinky: kroky ve formátu garmin.py (steps) */
+const KIND = {warmup: "Rozklus", cooldown: "Vyklus", recovery: "Pauza", interval: "Úsek"};
+const fmtPace = p => String(p).replace(/\s*-\s*/, "–") + "/km";
+const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)} h ${Math.round(m % 60)} min` : `${Math.round(m)} min`;
+const exName = s => { const n = String(s).includes("/") ? s.split("/").pop() : s; return /^[A-Z_]+$/.test(n) ? n.charAt(0) + n.slice(1).toLowerCase().replace(/_/g, " ") : n; };
+function stepList(steps, parent, inRepeat) {
+  const ol = h("ol", null, parent);
+  for (const s of steps) {
+    const li = h("li", null, ol);
+    if (s.exercise) {
+      h("b", "k", li, (s.sets ? s.sets + "× " : "") + (s.reps || s.time || ""));
+      li.append(exName(s.exercise));
+      if (s.weight_kg) h("em", null, li, ` ${fmtN(s.weight_kg)} kg`);
+      if (s.rest) h("small", null, li, "pauza " + s.rest);
+      continue;
+    }
+    if (s.kind === "repeat") {
+      h("b", null, li, `${s.times}× opakuj`);
+      stepList(s.steps || [], li, true);
+      continue;
+    }
+    h("span", "k", li, s.kind === "interval" && !inRepeat ? "Běh" : KIND[s.kind] || s.kind);
+    h("b", null, li, s.distance_km ? fmtN(s.distance_km) + " km" : s.time ? s.time : "do Lap");
+    if (s.pace) h("em", null, li, " @ " + fmtPace(s.pace));
+    else if (s.hr_zone) h("em", null, li, " tep Z" + s.hr_zone);
+    if (s.note) h("small", null, li, s.note);
+  }
+}
+function dayTip(items, ds, SLOV) {
+  const box = document.createElement("div");
+  for (const x of items) {
+    const wo = h("div", "wo", box);
+    const nm = h("div", "wn", wo, x.nazev || x.typ);
+    if (x.stav) h("span", null, nm, " · " + SLOV[x.stav]);
+    else if (ds < today) h("span", null, nm, " · nevyhodnoceno");
+    if (x.kroky && x.kroky.length) stepList(x.kroky, wo);
+    const p = x.plan || {}, s = x.skutecnost || {};
+    const plan = [p.km && fmtN(p.km) + " km", p.min && fmtMin(p.min)].filter(Boolean).join(" · ");
+    const sec = s.km && s.min && x.typ !== "strength" ? Math.round(60 * s.min / s.km) : 0;
+    const skut = [s.km && fmtN(s.km) + " km", s.min && fmtMin(s.min),
+      sec && `ø ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}/km`].filter(Boolean).join(" · ");
+    if (plan) h("div", "ws", wo, "Plán: " + plan);
+    if (skut) h("div", "ws", wo, "Skutečnost: " + skut);
+    if (x.hodnoceni) h("div", "wh", wo, x.hodnoceni);
+  }
+  return box;
+}
 function calendar() {
   const host = document.getElementById("cal");
   host.replaceChildren();
@@ -410,12 +473,7 @@ function calendar() {
           if (km) h("span", null, c, fmtN(km));
           if (str) h("span", "s", c, "S");
         }
-        bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}`, items.map(x => ({
-          value: x.nazev || x.typ,
-          label: (x.plan && x.plan.km ? `plán ${fmtN(x.plan.km)} km` : "") +
-                 (x.skutecnost && x.skutecnost.km ? ` · ${fmtN(x.skutecnost.km)} km` : "") +
-                 (x.stav ? ` · ${SLOV[x.stav]}` : (ds < today ? " · nevyhodnoceno" : "")),
-        })).concat(items.filter(x => x.hodnoceni).map(x => ({value: "", label: x.hodnoceni})))]);
+        bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}`, dayTip(items, ds, SLOV)]);
       }
       if (ds === today) c.classList.add("today");
     }

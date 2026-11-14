@@ -23,6 +23,8 @@ Formát data.json:
   "vdot":   [{"datum": "2026-10-12", "vdot": 46.3, "zdroj": "10 km 44:10"}],
   "upravy": [{"datum": "2026-11-12", "duvod": "HRV LOW 3 dny", "zmena": "I → E 8 km"}]
 }
+Volitelně u dne "popis" a "kroky" (stejný formát jako "steps" v garmin.py) – kompletní trénink do
+bublinky v kalendáři. Když chybí, html je doplní z trenink/garmin/*.json podle data a typu.
 typ: run | strength | other;  stav: splneno | zkraceno | vynechano | nahrazeno | null (zatím nevyhodnoceno)
 zony: km v pásmech E, M, T, I, R (skutečnost je odhad z temp/tepu úseků).
 wellness: hrv_status (Garmin) a hrv_dolni (dolní hranice hrv_baseline) jsou volitelné; bez nich se HRV
@@ -280,6 +282,37 @@ def cmd_text(a) -> None:
     print("\n".join(lines))
 
 
+def garmin_workouts(folder: Path) -> dict:
+    """Tréninky z trenink/garmin/*.json podle (datum, typ); novější soubor (oprava) přepíše starší."""
+    out: dict = {}
+    for f in sorted(folder.glob("*.json"), key=lambda p: p.stat().st_mtime):
+        try:
+            items = json.loads(f.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        for w in items if isinstance(items, list) else []:
+            if isinstance(w, dict) and w.get("date") and w.get("steps"):
+                out.setdefault((w["date"], w.get("type", "run")), {})[w.get("name", "")] = w
+    return out
+
+
+def with_workouts(days: list, folder: Path) -> list:
+    """Ke dnům připojí kompletní trénink (popis + kroky) pro tooltip dashboardu."""
+    gw = garmin_workouts(folder) if folder.is_dir() else {}
+    out = []
+    for x in days:
+        x = dict(x)
+        if "kroky" not in x:
+            cand = gw.get((x["datum"], x.get("typ") or "run"), {})
+            w = cand.get(x.get("nazev", "")) or (list(cand.values())[-1] if cand else None)
+            if w:
+                x["kroky"] = w["steps"]
+                if w.get("description") and "popis" not in x:
+                    x["popis"] = w["description"]
+        out.append(x)
+    return out
+
+
 def cmd_html(a) -> None:
     data = load(a.data)
     today = date.today()
@@ -287,7 +320,7 @@ def cmd_html(a) -> None:
         "dnes": today.isoformat(),
         "atlet": data.get("atlet", ""),
         "tydny": weeks(data, today),
-        "dny": data.get("dny", []),
+        "dny": with_workouts(data.get("dny", []), Path(a.data).parent / "garmin"),
         "zavody": data.get("zavody", []),
         "faze": data.get("faze", []),
         "wellness": sorted(data.get("wellness", []), key=lambda x: x["datum"]),

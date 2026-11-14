@@ -131,7 +131,8 @@ Před plánováním si přečti `references/periodizace.md` (fáze, objem, více
  
 1. Z `treninky.md` vezmi dny, které ještě nejsou v Garminu (bez „G✓“), a převeď je na JSON (formát v hlavičce `garmin.py`):
    - **Volno** se nenahrává.
-   - **Běh**: rozklus/vyklus jako `warmup`/`cooldown` s E tempem, úseky jako `repeat` s `interval` + `recovery`. Tempa ber z profilu jako pásmo (`"pace": "4:28-4:36"`; pro E celé E rozmezí). Lehký běh = jeden krok `interval` na vzdálenost s E pásmem. Rovinky na konci: `repeat` 6× (20 s `interval` bez tempa + 1:00 `recovery`).
+   - **Běh**: rozklus/vyklus jako `warmup`/`cooldown` s E tempem, úseky jako `repeat` s `interval` + `recovery`. Tempa ber z profilu jako pásmo (`"pace": "4:28-4:36"`; pro E celé E rozmezí). Lehký běh = jeden krok `interval` na vzdálenost s E pásmem. Rovinky na konci: `repeat` 6× (20 s `interval` bez tempa + 1:00 `recovery`). Kopce (krátké i delší): **před** `repeat` vždy krok `interval` bez délky a času (konec tlačítkem Lap) s poznámkou – sportovec jím doběhne k patě kopce a sám ho ukončí.
+   - **Km dne = celkem** včetně rovinek, kopců a pauz – lehkou část o ně zkrať (6× rovinka s pauzou ≈ 1 km, 4× ≈ 0,8 km, 6× krátký kopec ≈ 0,5 km), ať součet v hodinkách odpovídá plánu. Název pak podle lehké části, např. „Lehce 8 km + rovinky“ (celkem 9 km).
    - **Síla**: kroky s `exercise` (přesný anglický název z `references/sila.md` nebo nalezený přes `garmin.py exercise`), `sets`, `reps` nebo `time`, `rest`, případně `weight_kg`.
    - **Poznámka o intenzitě** (`note`) u každého běžeckého kroku bez tempa a u kvalitních úseků – krátce, česky, ať sportovec na hodinkách ví, jak úsek běžet:
      | Krok | Poznámka |
@@ -139,6 +140,7 @@ Před plánováním si přečti `references/periodizace.md` (fáze, objem, více
      | lehký / dlouhý běh, rozklus, vyklus | „Lehce na pocit - v klidu mluvíš celými větami“ |
      | rovinka | „Rovinka: stupňuj až na ~90 %, uvolněně, ne sprint“ |
      | pauza po rovince | „Chůze nebo velmi pomalý klus“ |
+     | doběh ke kopci (Lap) | „Doběhni lehce k patě kopce, pak zmáčkni Lap“ |
      | krátký kopec | „Kopec: ~95 %, dynamicky, krátké rychlé kroky, práce paží“ |
      | pauza po kopci | „Dolů chůzí, úplně se vydýchej“ |
      | T úsek | „Komfortně těžké - mluvíš jen pár slov“ |
@@ -174,7 +176,7 @@ Výstup vlož do odpovědi beze změny v bloku kódu (sloupce se zarovnávají j
 <python> <skill-dir>/scripts/prehled.py html --data trenink/data.json --out trenink/dashboard.html
 ```
  
-Obsahuje jen nezbytné minimum: 3 dlaždice (dny do A závodu, tento týden, regenerace), týdenní objem plán vs. skutečnost s fázemi a závody (v bublince % kvality a dlouhý běh), plnění tréninků 4 týdny zpět a 4 dopředu (u každého dne písmeno hlavního smyslu E/M/T/I/R, S = posilování, a km) a vedle regenerace za poslední 4 týdny. Dole je plán sezóny: časová osa fází se závody a dneškem, pod ní fáze (termín, týdny, objem, smysl) a seznam závodů. Každá fáze v `data.json` proto má mít i `objem` (např. „35 → 41“) a `smysl` (jedna věta běžnými slovy); při změně makrocyklu je aktualizuj spolu s `plan-sezony.md`. Hlavní smysl dne se bere z pásem (kvalitní pásmo ≥ 10 % km běhu, jinak E); když to nesedí, zapiš ho do `data.json` k dni jako `"hlavni": "T"`. Intenzitu, VDOT a úpravy plánu dashboard neukazuje – patří do textového přehledu v odpovědi.
+Obsahuje jen nezbytné minimum: 3 dlaždice (dny do A závodu, tento týden, regenerace), týdenní objem plán vs. skutečnost s fázemi a závody (v bublince % kvality a dlouhý běh), plnění tréninků 4 týdny zpět a 4 dopředu (u každého dne písmeno hlavního smyslu E/M/T/I/R, S = posilování, a km; bublinka dne ukazuje kompletní trénink – všechny kroky s časy/úseky/tempy a poznámkami, cviky se sériemi a pauzami, plán vs. skutečnost a hodnocení; kroky se berou z `trenink/garmin/*.json` podle data a typu, novější soubor má přednost, nebo z `kroky`/`popis` u dne v `data.json`) a vedle regenerace za poslední 4 týdny. Dole je plán sezóny: časová osa fází se závody a dneškem, pod ní fáze (termín, týdny, objem, smysl) a seznam závodů. Každá fáze v `data.json` proto má mít i `objem` (např. „35 → 41“) a `smysl` (jedna věta běžnými slovy); při změně makrocyklu je aktualizuj spolu s `plan-sezony.md`. Hlavní smysl dne se bere z pásem (kvalitní pásmo ≥ 10 % km běhu, jinak E); když to nesedí, zapiš ho do `data.json` k dni jako `"hlavni": "T"`. Intenzitu, VDOT a úpravy plánu dashboard neukazuje – patří do textového přehledu v odpovědi.
  
 ### Online přehled na claude.ai
  
@@ -308,7 +310,7 @@ Hodnocení: (kvalitní tréninky a dlouhý běh – závěr a rada na příště
 Souhrn: (doplní se po týdnu – skutečné km, pocity, wellness)
 ```
  
-U každého kvalitního tréninku uveď konkrétní tempo v min/km (ne jen zkratku), rozklus a vyklus. Součet km se má shodovat s plánem týdne (±1 km). Upravený trénink označ poznámkou s důvodem (např. „↓ wellness: HRV LOW“).
+U každého kvalitního tréninku uveď konkrétní tempo v min/km (ne jen zkratku), rozklus a vyklus. Km u tréninku jsou celkem včetně rovinek/kopců a pauz – v popisu rozepiš lehkou část, např. „Lehce 8 km + 6× 20 s rovinky (p 1 min) = ~9 km“. Součet km se má shodovat s plánem týdne (±1 km). Upravený trénink označ poznámkou s důvodem (např. „↓ wellness: HRV LOW“).
  
 ## Zásady
  
