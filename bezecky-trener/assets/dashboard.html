@@ -117,6 +117,9 @@ svg text { font-family: inherit; }
 .cal .c.good { background: var(--good); color: #fff; }
 .cal .c.warn { background: var(--warning); color: #0b0b0b; }
 .cal .c.bad { background: var(--critical); color: #fff; }
+.cal .c.race { outline: 2px solid var(--actual); outline-offset: -2px; }
+.cal .c.race b { letter-spacing: -0.5px; }
+#tip .wr .wn { color: var(--actual); }
 .cal .c.today { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--text-primary); }
 .cal .c .s { position: absolute; top: 2px; right: 4px; font-size: 9px; font-weight: 700; }
 .cal .c b { font-weight: 700; }
@@ -183,7 +186,7 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
 
   <div class="card">
     <h2>Týdenní objem</h2>
-    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span></div>
+    <div class="legend"><span><i class="sw" style="background:var(--plan)"></i>Plán</span><span><i class="sw" style="background:var(--actual)"></i>Skutečnost</span><span><i class="sw" style="background:var(--critical)"></i>Kvalita (M/T/I/R)</span></div>
     <div class="chart" id="vol"></div>
   </div>
 
@@ -196,6 +199,7 @@ details summary.sm { font-size: 13px; color: var(--text-secondary); margin-top: 
         <span><i class="sw" style="background:var(--critical)"></i>✕ vynecháno</span>
         <span><i class="sw" style="background:var(--plan)"></i>mimo plán</span>
         <span><i class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></i>naplánováno</span>
+        <span><i class="sw" style="box-shadow:inset 0 0 0 2px var(--actual)"></i>▼ závod A/B/C</span>
       </div>
       <div id="cal"></div>
     </div>
@@ -332,6 +336,7 @@ function phaseBands(svg, xL, bw, top, bottom) {
   const ci = W.findIndex(w => w.stav === "current");
   if (ci >= 0) el("rect", {x: xL(ci), y: top, width: bw, height: bottom - top, fill: "var(--now)"}, svg);
 }
+const qual = z => z ? ZONY.slice(1).reduce((a, k) => a + (z[k] || 0), 0) : 0;
 function racesInWeek(w) { return D.zavody.filter(r => r.datum >= w.tyden && r.datum <= w.konec); }
 
 function volumeChart() {
@@ -347,11 +352,18 @@ function volumeChart() {
   phaseBands(svg, xL, bw, m.t, H - m.b);
   yAxis(svg, sc, m.l, width - m.r, y);
   const barW = Math.min(12, Math.max(3, (bw - 6) / 2));
+  /* sloupec s kvalitou (km mimo E) jako červenou spodní částí */
+  const bar = (x, km, zony, fill) => {
+    el("path", {d: colPath(x, y(km), barW, y(sc.lo) - y(km)), fill}, svg);
+    const q = Math.min(km, qual(zony));
+    if (q <= 0) return;
+    if (q >= km) el("path", {d: colPath(x, y(q), barW, y(sc.lo) - y(q)), fill: "var(--critical)"}, svg);
+    else el("rect", {x, y: y(q), width: barW, height: y(sc.lo) - y(q), fill: "var(--critical)"}, svg);
+  };
   W.forEach((w, i) => {
     const cx = xL(i) + bw / 2;
-    el("path", {d: colPath(cx - barW - 1, y(w.plan_km), barW, y(sc.lo) - y(w.plan_km)), fill: "var(--plan)"}, svg);
-    if (w.skut_km != null)
-      el("path", {d: colPath(cx + 1, y(w.skut_km), barW, y(sc.lo) - y(w.skut_km)), fill: "var(--actual)"}, svg);
+    bar(cx - barW - 1, w.plan_km, w.plan_zony, "var(--plan)");
+    if (w.skut_km != null) bar(cx + 1, w.skut_km, w.skut_zony, "var(--actual)");
     const rs = racesInWeek(w);
     if (rs.length) el("text", {x: cx, y: m.t - 4, "text-anchor": "middle", class: "blabel"}, svg, "▼ " + rs.map(r => r.priorita).join(""));
     const hit = el("rect", {x: xL(i), y: m.t, width: bw, height: H - m.t - m.b, class: "hit"}, svg);
@@ -361,7 +373,11 @@ function volumeChart() {
         {color: "var(--actual)", value: w.skut_km == null ? "–" : fmtN(w.skut_km) + " km", label: "skutečnost" + (w.skut_km != null ? ` (${pct(w.skut_km, w.stav === "current" ? w.plan_km_dosud : w.plan_km)})` : ""), box: 1},
       ];
       const zt = ZONY.reduce((a, k) => a + (w.plan_zony[k] || 0), 0);
-      if (zt) rows.push({value: Math.round(100 * (zt - (w.plan_zony.E || 0)) / zt) + " %", label: "kvalita v plánu (mimo E)"});
+      if (zt) rows.push({color: "var(--critical)", box: 1, value: fmtN(qual(w.plan_zony)) + " km",
+        label: `kvalita v plánu (${Math.round(100 * qual(w.plan_zony) / zt)} %)`});
+      const st = w.skut_zony ? ZONY.reduce((a, k) => a + (w.skut_zony[k] || 0), 0) : 0;
+      if (st) rows.push({color: "var(--critical)", box: 1, value: fmtN(qual(w.skut_zony)) + " km",
+        label: `kvalita ve skutečnosti (${Math.round(100 * qual(w.skut_zony) / st)} %)`});
       if (w.plan_dlouhy) rows.push({value: `${fmtN(w.plan_dlouhy)}${w.skut_dlouhy ? " / " + fmtN(w.skut_dlouhy) : ""} km`, label: "dlouhý běh plán" + (w.skut_dlouhy ? " / skutečnost" : "")});
       rs.forEach(r => rows.push({value: r.nazev, label: `${fmtD(r.datum)} ${r.priorita}`}));
       return [`${fmtD(w.tyden)}–${fmtD(w.konec)} · ${w.faze || "bez fáze"}${w.stav === "current" ? " · tento týden" : ""}`, rows];
@@ -424,8 +440,13 @@ function stepList(steps, parent, inRepeat) {
     if (s.note) h("small", null, li, s.note);
   }
 }
-function dayTip(items, ds, SLOV) {
+function dayTip(items, ds, SLOV, race) {
   const box = document.createElement("div");
+  if (race) {
+    const wr = h("div", "wo wr", box);
+    h("div", "wn", wr, `▼ ${race.priorita} závod: ${race.nazev}`);
+    h("div", "ws", wr, [race.trat, race.cil && "cíl " + race.cil].filter(Boolean).join(" · "));
+  }
   for (const x of items) {
     const wo = h("div", "wo", box);
     const nm = h("div", "wn", wo, x.nazev || x.typ);
@@ -452,7 +473,10 @@ function calendar() {
   const CLS = {splneno: "good", nahrazeno: "good", zkraceno: "warn", vynechano: "bad"};
   const SLOV = {splneno: "splněno", nahrazeno: "nahrazeno", zkraceno: "zkráceno", vynechano: "vynecháno"};
   const grid = weekGrid(host);
-  lastWeeks(4, 4).forEach(mon => {
+  /* dopředu až do týdne posledního naplánovaného tréninku */
+  const last = D.dny.filter(x => x.typ !== "volno").reduce((m, x) => x.datum > m ? x.datum : m, today);
+  const ahead = Math.max(0, Math.ceil((days(today, last) - (6 - (new Date(today + "T12:00:00").getDay() + 6) % 7)) / 7));
+  lastWeeks(4, ahead).forEach(mon => {
     h("div", "w", grid, fmtD(iso(mon)));
     for (let k = 0; k < 7; k++) {
       const ds = dayISO(mon, k);
@@ -461,19 +485,21 @@ function calendar() {
       const str = items.find(x => x.typ === "strength");
       const main = run || str;
       const c = h("div", "c", grid);
-      if (main) {
-        const st = main.stav;
-        const free = !st && ds < today && main.skutecnost;  // odběhnuto mimo plán
+      const race = D.zavody.find(r => r.datum === ds);
+      if (main || race) {
+        const st = main && main.stav;
+        const free = main && !st && ds < today && main.skutecnost;  // odběhnuto mimo plán
         c.classList.add(st ? CLS[st] : free ? "free" : "plan");
+        if (race) c.classList.add("race");
         const top = h("span", null, c);
         if (st) top.append(SYM[st] + " ");
-        h("b", null, top, run ? mainZone(run) : "S");
+        h("b", null, top, race ? "▼" + race.priorita : run ? mainZone(run) : "S");
         if (run) {
           const km = (run.skutecnost && run.skutecnost.km) || (run.plan && run.plan.km);
           if (km) h("span", null, c, fmtN(km));
           if (str) h("span", "s", c, "S");
         }
-        bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}`, dayTip(items, ds, SLOV)]);
+        bindTip(c, () => [`${DAY[k]} ${fmtD(ds)}`, dayTip(items, ds, SLOV, race)]);
       }
       if (ds === today) c.classList.add("today");
     }
