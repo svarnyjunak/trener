@@ -318,6 +318,7 @@ def cmd_html(a) -> None:
     today = date.today()
     payload = {
         "dnes": today.isoformat(),
+        "cas": datetime.now().strftime("%H:%M"),
         "atlet": data.get("atlet", ""),
         "tydny": weeks(data, today),
         "dny": with_workouts(data.get("dny", []), Path(a.data).parent / "garmin"),

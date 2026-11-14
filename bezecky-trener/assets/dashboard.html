@@ -697,7 +697,7 @@ function planOverview() {
 
 function render() {
   document.getElementById("sub").textContent =
-    `${D.atlet ? D.atlet + " · " : ""}vygenerováno ${fmtD(today)}${today.slice(0, 4)}`;
+    `${D.atlet ? D.atlet + " · " : ""}vygenerováno ${fmtD(today)}${today.slice(0, 4)}${D.cas ? " v " + D.cas : ""}`;
   tiles(); volumeChart(); calendar(); wellStatus(); planOverview();
 }
 render();
